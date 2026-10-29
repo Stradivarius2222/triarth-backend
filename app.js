@@ -3,7 +3,6 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
-const fs = require('fs');
 const { Resend } = require('resend');
 const multer = require('multer');
 const crypto = require('crypto');
@@ -13,19 +12,18 @@ const XLSX = require('xlsx');
 const { createClient } = require('@libsql/client');
 
 // ==========================================
-// KONFIGURASI MULTER & UPLOAD FILE
+// KONFIGURASI MULTER (Memory Storage untuk Vercel Serverless)
 // ==========================================
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, 'public', 'uploads'));
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-    }
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // Batas maksimum 10MB
 });
-const upload = multer({ storage: multer.memoryStorage() });
+
+// Helper untuk konversi Buffer file Multer ke Base64 Data URL (Pengganti Local Storage di Vercel)
+function bufferToDataUrl(file) {
+    if (!file || !file.buffer) return '';
+    return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+}
 
 // ==========================================
 // KONFIGURASI APLIKASI & RESEND
@@ -42,7 +40,10 @@ const db = createClient({
     authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
+let isDbInitialized = false;
+
 async function initDatabase() {
+    if (isDbInitialized) return;
     try {
         await db.execute(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,177 +124,20 @@ async function initDatabase() {
             args: [hashedPass]
         });
 
-        const defaultTranslations = [
-            ['aboutUs', 'About Us', 'Tentang Kami'],
-            ['segments', 'Segments', 'Segmen'],
-            ['segPersonal', 'Personal Care, Cosmetic & Fragrance', 'Perawatan Pribadi, Kosmetik & Wewangian'],
-            ['segPharma', 'Pharmaceutical & Nutraceutical', 'Farmasi & Nutrasetikal'],
-            ['segHome', 'Home Care I&I', 'Perawatan Rumah I&I'],
-            ['segVet', 'Feedmill & Animal Health', 'Pakan Ternak & Kesehatan Hewan'],
-            ['segProcess', 'Processing Chemicals', 'Bahan Kimia Proses'],
-            ['news', 'News', 'Berita'],
-            ['contact', 'Contact Us', 'Hubungi Kami'],
-            ['signUp', 'Sign Up', 'Daftar'],
-            ['signIn', 'Sign In', 'Masuk'],
-            ['productFinderTitle', 'Product Finder', 'Pencari Produk'],
-            ['searchPlaceholder', 'Search Product Name or INCI Name', 'Cari Nama Produk atau Nama INCI'],
-            ['filterPrincipal', 'Principal', 'Prinsipal'],
-            ['allPrincipals', 'All Principals', 'Semua Prinsipal'],
-            ['filterFunction', 'Function', 'Fungsi'],
-            ['allFunctions', 'All Functions', 'Semua Fungsi'],
-            ['filterApplication', 'Application', 'Aplikasi'],
-            ['allApplications', 'All Applications', 'Semua Aplikasi'],
-            ['resetBtn', 'Reset', 'Atur Ulang'],
-            ['thPrincipal', 'Principal', 'Prinsipal'],
-            ['thProductName', 'Product Name', 'Nama Produk'],
-            ['thInci', 'INCI Name', 'Nama INCI'],
-            ['noDataMsg', 'No products found.', 'Tidak ada produk yang ditemukan.'],
-            ['addressLabel', 'Address:', 'Alamat:'],
-            ['navColTitle', 'Navigation', 'Navigasi'],
-            ['workingHours', 'We are open: Mon - Fri: 8am - 5pm', 'Jam Kerja: Sen - Jum: 08:00 - 17:00'],
-            ['rightsText', 'All rights reserved', 'Hak cipta dilindungi']
-        ];
-
-        for (const [key, enText, idText] of defaultTranslations) {
-            await db.execute({
-                sql: `INSERT OR IGNORE INTO translations (translation_key, en_text, id_text) VALUES (?, ?, ?)`,
-                args: [key, enText, idText]
-            });
-        }
-
-        const defaultPartners = [
-            ['Linqtec', '/images/partners/linqtec.png', 'https://www.linqtec.com/en/'],
-            ['Corbion', '/images/partners/corbion_logo.png', 'https://www.corbion.com/biochemicals'],
-            ['Evyap', '/images/partners/evyap.png', 'https://evyaplifechemistry.com/'],
-            ['Kahlwax', '/images/partners/kahl.png', 'https://www.kahlworld.com/company/'],
-            ['Sun Chemical', '/images/partners/sunchemical.jpg', 'https://www.sunchemical.com/'],
-            ['Toyo Sugar', '/images/partners/toyosugar.jpg', 'https://www.toyosugar.co.jp/en/index.html'],
-            ['Zagro', '/images/partners/zagro.jpg', 'https://www.zagro.com/'],
-            ['BCF', '/images/partners/bcf.png', 'https://www.bcf-lifesciences.com/en/families-of-products/pharmaceutical/'],
-            ['Trimak', '/images/partners/trimak_logo.png', 'https://www.triarth.com/'],
-            ['Nucera', '/images/partners/nucera.png', 'https://nucerasolutions.com/'],
-            ['DSM', '/images/partners/dsm.png', 'https://www.dsm-firmenich.com/en/home.html'],
-            ['Lubrizol Beauty', '/images/partners/lubrizol_beauty.png', 'https://www.lubrizol.com/industries/beauty-and-personal-care'],
-            ['Lubrizol Home', '/images/partners/lubrizol_home_logo_.png', 'https://www.lubrizol.com/industries/consumer-goods-and-home-care'],
-            ['Aiglon', '/images/partners/aiglon.jpg', 'https://www.aiglon.eu/en/']
-        ];
-
-        for (const [name, logo, website] of defaultPartners) {
-            await db.execute({
-                sql: `INSERT OR IGNORE INTO partners (name, logo_url, website_url) VALUES (?, ?, ?)`,
-                args: [name, logo, website]
-            });
-        }
-
-        const defaultSettings = [
-            ['logo_white', '/images/logo2.png'],
-            ['logo_dark', '/images/logo.png'],
-            ['hero_title', 'The leading distributor of specialty chemicals in Indonesia'],
-            ['who_we_are_title', 'Who We Are'],
-            ['who_we_are_text', 'PT Tritunggal Arthamakmur is a premier distributor for top global manufacturers of specialty chemicals in Indonesia. We strive to provide an extensive choice of chemicals that meets international quality standards.'],
-            ['cta_title', 'Professionalism means to be the best in the business.'],
-            ['cta_text', 'Customer satisfaction is the goal. We provide exceptional customer service and are always ready to support you.'],
-            ['footer_company_name', 'PT Tritunggal Arthamakmur'],
-            ['footer_address', 'Komplek Graha Kencana Blok AB\nJl. Raya Pejuangan No. 88\nKebon Jeruk, Jakarta Barat\nJakarta 11530 Indonesia'],
-            ['footer_phone', '+62 21 53677181 (Hunting)'],
-            ['footer_working_hours', 'We are open: Mon - Fri: 8am - 5pm'],
-            ['footer_linkedin', 'https://www.linkedin.com/company/tritunggalarthamakmur/home/'],
-            ['footer_facebook', 'https://www.facebook.com/tritunggalarthamakmur'],
-            ['footer_instagram', 'https://www.instagram.com/tritunggalarthamakmur/'],
-            ['footer_copyright', '© 2026 Tritunggal Arthamakmur. All rights reserved'],
-            ['news_newsletter_title', 'Get our free monthly newsletter.'],
-            ['news_newsletter_text', 'Subscribe to get new products information and ideas for your next trendy products.'],
-            ['contact_email_destination', 'rendy.riady24@gmail.com'],
-            ['segment_processing_intro', 'We offer a wide range of specialty chemicals designed to optimize industrial processes, enhance product quality, and improve operational efficiency. Our portfolio includes functional chemical solutions tailored to meet the diverse needs of various industries, supporting applications such as process optimization, performance enhancement, and product quality improvement. With our commitment to quality and reliable supply, we work closely with our partners and customers to identify the right solutions for their specific processing needs, helping them achieve consistent results and greater operational efficiency.'],
-            ['contact_heading', 'Let us know what you need'],
-            ['principals_bg_image', '/images/principals-bg.jpg'],
-            ['contact_subtext', 'Lets have a discussion. Reach out to us for any inquiries, partnerships, or more information. We are here to help you.'],
-            ['principals_intro_text', 'We partner with reputable global manufacturers to bring quality ingredients, innovative technologies, and reliable solutions to the industries we serve. Trusted Partnerships. Proven Quality.'],
-            ['about_hero_text', 'Building a healthier future through science, nature, and innovation. Discover our journey, our values, and our commitment to providing high-quality pharmaceutical and functional food solutions globality.'],
-            ['news_hero_text', 'Explore the latest news, expert insights, product knowledge, practical tips, and company updates to keep you informed and inspired. Insights, Innovation & Industry Updates.'],
-            ['hero_bg_image_1', '/images/slider banner-01.webp'],
-            ['hero_bg_image_2', '/images/slider banner-02.webp'],
-            ['hero_bg_image_3', '/images/slider banner-03.webp'],
-            ['hero_bg_image_4', '/images/slider banner-04.webp'],
-            ['hero_bg_image_5', '/images/slider banner-05.webp'],
-            ['cta_bg_image', '/images/cta-bg.png'],
-            ['contact_bg_image', '/images/contact-bg.webp'],
-            ['news_bg_image', '/images/news-bg.webp'],
-            ['newsletter_bg_image', '/images/news2.png'],
-            ['about_bg_image', '/images/about-bg.jpg'],
-            ['about_tab_img_1', '/images/about-us.png'],
-            ['about_tab_img_2', '/images/history.png'],
-            ['about_tab_img_3', '/images/vision-mission.png'],
-            ['about_tab_img_4', '/images/presence.png'],
-            ['segment_personal_care_bg', '/images/segments/personal-care-bg.jpg'],
-            ['segment_pharma_bg', '/images/segments/pharma-bg.jpg'],
-            ['segment_homecare_bg', '/images/segments/homecare-bg.jpg'],
-            ['segment_vet_bg', '/images/segments/veterinary-bg.jpg'],
-            ['segment_processing_bg', '/images/segments/processing-bg.jpg'],
-            ['segment_personal_care_title', 'Personal Care, Cosmetic & Fragrance'],
-            ['segment_personal_care_intro', 'We provide a comprehensive range of high-quality ingredients for personal care, cosmetics, and fragrance applications, covering hair care, skin care, color cosmetics, and fragrance formulations. Our portfolio includes rheology modifiers, emulsifiers, emollients, conditioning polymers, active ingredients, pearlescent pigments, preservatives, fragrance ingredients, and more. Backed by our experienced team and technical expertise, we work closely with our partners and customers to develop innovative formulations, enhance product performance, and bring new ideas to life.'],
-            ['segment_pharma_title', 'Pharmaceutical & Nutraceutical'],
-            ['segment_pharma_intro', 'We offer a comprehensive range of high-quality ingredients for pharmaceutical and nutraceutical applications, including Active Pharmaceutical Ingredients (APIs), pharmaceutical excipients, botanical extracts, vitamins, minerals, and other functional ingredients to support the development of pharmaceutical products, dietary supplements, and health-focused formulations. With our extensive product portfolio and commitment to quality, we work closely with our partners and customers to provide reliable ingredient solutions that support product innovation, formulation development, and evolving market needs.'],
-            ['segment_homecare_title', 'Home Care I&I'],
-            ['segment_homecare_intro', 'Supplying various specialty surfactants and performance additives such as hydrotrope, fabric softener, product thickener, emulsifier, dispersant, wetting agent, biocide and preservative to meet consumer needs for optimizing product performance for household cleaning and industrial & institutional applications.'],
-            ['segment_vet_title', 'Feedmill & Animal Health'],
-            ['segment_vet_intro', 'We provide a comprehensive range of specialty feed additives and animal health solutions designed to support animal nutrition, health, and performance. Our portfolio includes antioxidants, acidifiers, vitamins and mineral premixes, mycotoxin binders, mold inhibitors, and other functional ingredients for the feedmill, livestock, poultry, and aquaculture industries. Through our commitment to quality and reliable ingredient solutions, we work closely with our partners and customers to address industry challenges, optimize feed quality, support animal health, and improve overall production efficiency.'],
-            ['segment_processing_title', 'Processing Chemicals'],
-            ['processing_metalworking_desc', 'Offering specialty chemicals and customized blends to help Metalworking Fluid formulators create final products that are tailored to their specific needs with durable and high-performance solutions. We provide specialty additives for niche application areas in anti-foam, corrosion inhibitor, emulsifier, wetting agent, lubricant, biocide, and preservative.'],
-            ['processing_battery_desc', 'Providing specialty additives for niche application areas in the battery manufacturing and processing.'],
-            ['processing_textile_desc', 'Offering specialty chemicals for different steps of textile processing preparation, mercerization, bleaching, pre-treatment, finishing, washing off, and after-treatment, which includes specialty surfactants, levelling agents, and various softeners.'],
-            ['processing_water_desc', 'Providing additives for high performance solutions in a broad case of applications for industrial water treatment.'],
-            ['processing_cropcare_desc', 'Specialty surfactants, customized blends, and ingredients designed for Crop Care to help farmers prevent weeds, fungi, and pests, which destroy their crops.'],
-            ['app_pc_cosmetics_title', 'Color Cosmetics'],
-            ['app_pc_cosmetics_img', '/images/segments/cosmetic.png'],
-            ['app_pc_skincare_title', 'Skin Care'],
-            ['app_pc_skincare_img', '/images/segments/skincare.png'],
-            ['app_pc_bath_title', 'Bath & Shower'],
-            ['app_pc_bath_img', '/images/segments/bath.png'],
-            ['app_pc_haircare_title', 'Hair Care'],
-            ['app_pc_haircare_img', '/images/segments/haircare.png'],
-            ['app_pharma_pharma_title', 'Pharmaceutical'],
-            ['app_pharma_pharma_img', '/images/segments/pharma.png'],
-            ['app_pharma_food_title', 'Functional Food'],
-            ['app_pharma_food_img', '/images/segments/food.png'],
-            ['app_pharma_excipient_title', 'Excipient'],
-            ['app_pharma_excipient_img', '/images/segments/excipient.png'],
-            ['app_homecare_home_title', 'Home Care'],
-            ['app_homecare_home_img', '/images/segments/homecare1.png'],
-            ['app_homecare_inst_title', 'Institutional Cleaning'],
-            ['app_homecare_inst_img', '/images/segments/cleaning.png'],
-            ['app_homecare_ind_title', 'Industrial Cleaning'],
-            ['app_homecare_ind_img', '/images/segments/industrial.png'],
-            ['app_vet_aqua_title', 'Aquaculture'],
-            ['app_vet_aqua_img', '/images/segments/aqua.png'],
-            ['app_vet_livestock_title', 'Livestock & Poultry'],
-            ['app_vet_livestock_img', '/images/segments/livestock.png'],
-            ['app_proc_metalworking_title', 'Metalworking Fluid'],
-            ['app_proc_metalworking_img', '/images/segments/metalworking.png'],
-            ['app_proc_battery_title', 'Battery'],
-            ['app_proc_battery_img', '/images/segments/battery.png'],
-            ['app_proc_textile_title', 'Textile Formulator'],
-            ['app_proc_textile_img', '/images/segments/textile.png'],
-            ['app_proc_water_title', 'Water Treatment'],
-            ['app_proc_water_img', '/images/segments/water.png'],
-            ['app_proc_cropcare_title', 'Crop Care Formulator'],
-            ['app_proc_cropcare_img', '/images/segments/crop_care.png']
-        ];
-
-        for (const [key, val] of defaultSettings) {
-            await db.execute({
-                sql: `INSERT OR IGNORE INTO site_settings (key, value) VALUES (?, ?)`,
-                args: [key, val]
-            });
-        }
-
+        isDbInitialized = true;
         console.log('Inisialisasi Database Turso Berhasil.');
     } catch (err) {
         console.error('Gagal inisialisasi database Turso:', err.message);
     }
 }
 
-initDatabase();
+// Middleware opsional untuk memastikan DB terinisialisasi
+app.use(async (req, res, next) => {
+    if (!isDbInitialized) {
+        await initDatabase();
+    }
+    next();
+});
 
 // ==========================================
 // MIDDLEWARE CONFIGURATION
@@ -761,17 +605,15 @@ app.post('/editor/news', upload.single('image'), async (req, res) => {
             return res.status(400).send('Judul dan konten wajib diisi.');
         }
 
-        // Bersihkan tag HTML dari Summernote untuk membuat slug URL
         const cleanTitleForSlug = title.replace(/<[^>]*>?/gm, '').trim();
         const slug = cleanTitleForSlug.toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/(^-|-$)/g, '') + '-' + Date.now();
 
-        // Jika upload file via memoryStorage (URL disesuaikan/placeholder)
+        // Menggunakan Data URL Base64 untuk kompatibilitas Vercel
         let imageUrl = '';
         if (req.file) {
-            // Contoh URL path lokal/base64 atau integrasi cloud storage
-            imageUrl = `/uploads/${Date.now()}-${req.file.originalname}`;
+            imageUrl = bufferToDataUrl(req.file);
         }
 
         await db.execute({
@@ -855,7 +697,7 @@ app.post('/editor/news/edit/:id', upload.single('image'), async (req, res) => {
 
     try {
         if (req.file) {
-            const imageUrl = `/uploads/${req.file.filename}`;
+            const imageUrl = bufferToDataUrl(req.file);
             await db.execute({
                 sql: `UPDATE news SET title = ?, content = ?, image_url = ? WHERE id = ?`,
                 args: [title, content, imageUrl, newsId]
@@ -1639,7 +1481,7 @@ app.post('/admin/products/edit-formula/:id', upload.single('formula_pdf'), async
 
         let pdfUrl = oldFormula.pdf_url;
         if (req.file) {
-            pdfUrl = `/uploads/${req.file.filename}`;
+            pdfUrl = bufferToDataUrl(req.file);
         }
 
         await db.execute({
@@ -2544,7 +2386,7 @@ app.post('/admin/settings/update', async (req, res) => {
             if (req.files) {
                 for (const item of fileKeys) {
                     if (req.files[item.field] && req.files[item.field][0]) {
-                        const imgPath = '/uploads/' + req.files[item.field][0].filename;
+                        const imgPath = bufferToDataUrl(req.files[item.field][0]);
                         await db.execute({
                             sql: `INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)`,
                             args: [item.dbKey, imgPath]
@@ -2563,7 +2405,7 @@ app.post('/admin/settings/update', async (req, res) => {
 app.post('/admin/partners/add', upload.single('logo'), async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send('Unauthorized');
     const { name, website_url } = req.body;
-    const logoUrl = req.file ? `/uploads/${req.file.filename}` : '';
+    const logoUrl = req.file ? bufferToDataUrl(req.file) : '';
 
     try {
         await db.execute({
@@ -2584,7 +2426,7 @@ app.post('/admin/partners/edit/:id', upload.single('logo'), async (req, res) => 
 
     try {
         if (req.file) {
-            const logoUrl = `/uploads/${req.file.filename}`;
+            const logoUrl = bufferToDataUrl(req.file);
             await db.execute({
                 sql: `UPDATE partners SET name = ?, website_url = ?, logo_url = ? WHERE id = ?`,
                 args: [name, website_url, logoUrl, partnerId]
