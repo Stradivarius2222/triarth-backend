@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Sign In - PT Tritunggal Arthamakmur</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Script reCAPTCHA Google -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <style>
+        /* Gaya Tombol Bahasa Kustom (Pill Style) */
+        .lang-pill-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #0366d6;
+            background: transparent;
+            padding: 6px 14px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: none;
+            border: none;
+        }
+        .lang-pill-btn:hover {
+            background-color: transparent;
+            border-color: #0366d6;
+        }
+        .lang-pill-btn i {
+            font-size: 1rem;
+            color: #0366d6;
+        }
+    </style>
+</head>
+<body class="signup-page-body">
+
+    <!-- Header / Navbar -->
+    <header class="navbar navbar-light">
+        <div class="container navbar-content">
+            <!-- Logo Kiri -->
+            <a href="/" class="logo">
+                <img src="/images/logo.png" alt="PT Tritunggal Arthamakmur" class="logo-img logo-initial" draggable="false">
+                <img src="/images/logo.png" alt="PT Tritunggal Arthamakmur" class="logo-img logo-scrolled" draggable="false">
+            </a>
+
+            <!-- Menu Tengah -->
+            <nav class="nav-links" id="navLinks">
+                <a href="/about" data-i18n="aboutUs">About Us</a>
+                
+                <!-- Dropdown Segments -->
+                <div class="dropdown">
+                    <a href="javascript:void(0)" id="dropdownToggle">
+                        <span data-i18n="segments">Segments</span> <i class="fa-solid fa-chevron-down text-xs"></i>
+                    </a>
+                    <div class="dropdown-content">
+                        <a href="/segments/personal-care" data-i18n="segPersonal">Personal Care, Cosmetic & Fragrance</a>
+                        <a href="/segments/pharmaceutical-functional-food" data-i18n="segPharma">Pharmaceutical & Nutraceutical</a>
+                        <!-- Menu Industrial dengan Submenu di Kanan -->
+                        <div class="dropdown-submenu">
+                            <a href="javascript:void(0)" data-i18n="segIndustrial">Industrial</a>
+                            <div class="submenu-content">
+                                <a href="/segments/home-care-ii" data-i18n="segHome">Home Care I&I</a>
+                                <a href="/segments/veterinary-feedmill" data-i18n="segVet">Feedmill & Animal Health</a>
+                                <a href="/segments/processing-chemicals" data-i18n="segProcess">Processing Chemicals</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                            <a href="/principals" data-i18n="principals">Principals</a> <!-- Tambahkan ini -->
+
+
+                <a href="/news" data-i18n="news">News</a>
+                <a href="/contact" data-i18n="contact">Contact Us</a>
+
+                <!-- Tombol Switcher Bahasa Mobile & Auth -->
+                <div class="mobile-auth-wrapper">
+                    <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+                        <button onclick="toggleLanguage()" class="lang-pill-btn" id="langMobileBtn">
+                            <i class="fa-solid fa-globe"></i>
+                            <span id="langMobileText">En</span>
+                        </button>
+                    </div>
+                    <a href="/signup" class="mobile-signup-link" data-i18n="signUp">Sign Up</a>
+                    <a href="/signin" class="mobile-signin-btn" data-i18n="signIn">Sign In</a>
+                </div>
+            </nav>
+
+            <!-- Auth Buttons Desktop & Language Switcher -->
+            <div class="auth-buttons" style="display: flex; align-items: center; gap: 12px;">
+                <!-- Tombol Pill Bahasa Desktop -->
+                <button onclick="toggleLanguage()" class="lang-pill-btn" id="langDesktopBtn" title="Switch Language">
+                    <i class="fa-solid fa-globe"></i>
+                    <span id="langDesktopText">En</span>
+                </button>
+                <a href="/signup" class="btn-signup" data-i18n="signUp">Sign Up</a>
+                <a href="/signin" class="btn-signin" data-i18n="signIn">Sign In</a>
+            </div>
+
+            <!-- Tombol Mobile Hamburger Menu -->
+            <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle Menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sign In Main Container -->
+    <main class="signup-main-container">
+        <div class="signup-wrapper">
+            
+            <div class="signup-left-col">
+                <img src="/images/logo.png" alt="TAM Logo" class="large-tam-logo" draggable="false">
+            </div>
+
+            <div class="signup-right-col">
+                <h1 class="signup-title" data-i18n="signInTitle">Sign In</h1>
+
+            <form action="/signin" method="POST" class="signup-form">
+                <!-- Input hidden untuk menangkap URL tujuan redirect -->
+                <input type="hidden" id="redirectInput" name="redirect">
+
+                <!-- E-mail -->
+                <div class="form-field-group">
+                    <label data-i18n="emailLabel">E-mail</label>
+                    <input type="email" name="email" placeholder="Your email" data-i18n-placeholder="emailPlaceholder" required class="signup-input">
+                </div>
+
+                <!-- Password -->
+                <div class="form-field-group">
+                    <label data-i18n="passwordLabel">Password</label>
+                    <input type="password" name="password" placeholder="Your Password" data-i18n-placeholder="passwordPlaceholder" required class="signup-input">
+                </div>
+
+                <div class="forgot-pass-wrapper">
+                    <a href="/forgot-password" class="forgot-pass-link" data-i18n="forgotPass">Forgot Password?</a>
+                </div>
+
+                <p class="terms-text">
+                    <span data-i18n="termsTextBefore">By signing in, you agree to the</span> <a href="#" id="open-terms" class="terms-link" data-i18n="termsLink">Term of Service .</a>
+                </p>
+
+                <div class="signup-recaptcha-wrapper">
+                    <div class="g-recaptcha" data-sitekey="6LfNI9ctAAAAAP2_ksLscuCafbj5m5tfr20o6tRE"></div>
+                </div>
+
+                <div class="signup-action-row">
+                    <button type="submit" class="btn-submit-green" data-i18n="signInBtn">Sign In</button>
+                    <span class="signin-prompt"><a href="/signup" class="signin-highlight-link" data-i18n="signUp">Sign Up</a> <span data-i18n="toGetAccess">to get access</span></span>
+                </div>
+            </form>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer Gelap -->
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-col brand-col">
+                <div class="footer-logo">
+                    <a href="/">
+                        <img src="/images/logo2.png" alt="PT Tritunggal Arthamakmur" class="logo-img-footer" draggable="false">
+                    </a>
+                </div>
+                <p class="company-title-green">PT Tritunggal Arthamakmur</p>
+                <p class="address">
+                    <span class="address-label" data-i18n="addressLabel">Address:</span><br>
+                    Komplek Graha Kencana Blok AB<br>
+                    Jl. Raya Pejuangan No. 88<br>
+                    Kebon Jeruk, Jakarta Barat<br>
+                    Jakarta 11530 Indonesia
+                </p>
+            </div>
+
+            <div class="footer-col">
+                <h4 data-i18n="navColTitle">Navigation</h4>
+                <ul>
+                    <li><a href="/" data-i18n="home">Home</a></li>
+                    <li><a href="/about" data-i18n="aboutUs">ABOUT US</a></li>
+                    <li><a href="/principals" data-i18n="principals">Principals</a></li>
+                    <li><a href="/news" data-i18n="news">NEWS</a></li>
+                    <li><a href="/contact" data-i18n="contact">CONTACT US</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4 data-i18n="segments">Segments</h4>
+                <ul>
+                    <li><a href="/segments/personal-care" data-i18n="segPersonal">Personal Care, Cosmetic & Fragrance</a></li>
+                    <li><a href="/segments/pharmaceutical-functional-food" data-i18n="segPharma">Pharmaceutical & Nutraceutical</a></li>
+                    <li><a href="/segments/home-care-ii" data-i18n="segHome">Home Care I&I</a></li>
+                    <li><a href="/segments/veterinary-feedmill" data-i18n="segVet">Feedmill & Animal Health</a></li>
+                    <li><a href="/segments/processing-chemicals" data-i18n="segProcess">Processing Chemicals</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4 data-i18n="contact">Contact</h4>
+                <p class="contact-info">Head Office :<br>+62 21 53677181 (Hunting)</p>
+                <p class="working-hours" data-i18n="workingHours">We are open: Mon - Fri: 8am - 5pm</p>
+                <div class="social-icons">
+                    <a href="https://www.linkedin.com/company/tritunggalarthamakmur/home/" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-linkedin-in"></i></a>
+                    <a href="https://www.facebook.com/tritunggalarthamakmur" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://www.instagram.com/tritunggalarthamakmur/" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 <span class="highlight-green">Tritunggal Arthamakmur</span>. <span data-i18n="rightsText">All rights reserved</span></p>
+        </div>
+    </footer>
+
+    <!-- POP-UP MODAL TERM OF SERVICE -->
+    <div id="terms-modal" class="modal-overlay">
+        <div class="modal-box" style="max-width: 650px; width: 90%; max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 15px;">
+                <h2 style="margin: 0; font-size: 1.35rem; color: #1a202c;" data-i18n="modalTitle">Term of Service</h2>
+                <button type="button" id="close-terms" class="modal-close-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #718096;">&times;</button>
+            </div>
+            
+            <div class="modal-body" style="overflow-y: auto; text-align: left; padding-right: 10px; font-size: 0.95rem; color: #4a5568; line-height: 1.6;">
+                <p><strong data-i18n="modalLastUpdated">Last updated:</strong> February 20, 2022</p>
+                <p data-i18n="modalDesc1">This Term of Service describes Our Privacy Policy and Disclaimer.</p>
+
+                <h3 style="color: #2d3748; margin-top: 20px;" data-i18n="modalInterp">Interpretation and Definitions</h3>
+                <h4 style="color: #2d3748;" data-i18n="modalInterpSub">Interpretation</h4>
+                <p data-i18n="modalInterpDesc">The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
+
+                <h4 style="color: #2d3748;" data-i18n="modalDefTitle">Definitions</h4>
+                <p data-i18n="modalDefSub">For the purposes of this Privacy Policy:</p>
+                <ul style="padding-left: 20px; margin-bottom: 15px;">
+                    <li data-i18n="defAcc"><strong>Account:</strong> means a unique account created for You to access our Service or parts of our Service.</li>
+                    <li data-i18n="defComp"><strong>Company:</strong> (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to PT Tritunggal Arthamakmur, Komplek Graha Kencana Blok AB, Jl. Raya Pejuangan Kav. 88, Jakarta 11530.</li>
+                    <li data-i18n="defCookies"><strong>Cookies:</strong> are small files that are placed on Your computer, mobile device or any other device by a website, containing the details of Your browsing history on that website among its many uses.</li>
+                    <li data-i18n="defCountry"><strong>Country:</strong> refers to: Indonesia</li>
+                    <li data-i18n="defDevice"><strong>Device:</strong> means any device that can access the Service such as a computer, a cellphone or a digital tablet.</li>
+                    <li data-i18n="defData"><strong>Personal Data:</strong> is any information that relates to an identified or identifiable individual.</li>
+                    <li data-i18n="defService"><strong>Service:</strong> refers to the Website.</li>
+                    <li data-i18n="defProvider"><strong>Service Provider:</strong> means any natural or legal person who processes the data on behalf of the Company. It refers to third-party companies or individuals employed by the Company to facilitate the Service, to provide the Service on behalf of the Company, to perform services related to the Service or to assist the Company in analyzing how the Service is used.</li>
+                    <li data-i18n="defUsage"><strong>Usage Data:</strong> refers to data collected automatically, either generated by the use of the Service or from the Service infrastructure itself (for example, the duration of a page visit).</li>
+                    <li data-i18n="defWeb"><strong>Website:</strong> refers to PT Tritunggal Arthamakmur, accessible from <a href="https://www.triarth.com/" target="_blank" rel="noopener">https://www.triarth.com/</a></li>
+                    <li data-i18n="defYou"><strong>You:</strong> means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.</li>
+                </ul>
+            </div>
+
+            <div class="modal-footer" style="border-top: 1px solid #e2e8f0; padding-top: 15px; margin-top: 15px; text-align: right;">
+                <button type="button" id="accept-terms-btn" class="btn-accept-green" style="background: #008744; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; cursor: pointer;" data-i18n="modalAgreeBtn">I Agree</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Scroll To Top Button -->
+    <a href="#" class="scroll-to-top">
+        <i class="fa-solid fa-chevron-up"></i>
+    </a>
+
+    <!-- SKRIP MULTI-LANGUAGE DICTIONARY -->
+    <script>
+ let translations = { en: {}, id: {} };
+
+// Ambil data terjemahan secara dinamis dari database via API backend
+function loadTranslations() {
+    fetch('/api/translations')
+        .then(res => res.json())
+        .then(data => {
+            translations = data;
+            const savedLang = localStorage.getItem('tam_lang') || 'en';
+            applyTranslations(savedLang);
+        })
+        .catch(err => console.error("Gagal memuat terjemahan:", err));
+}
+
+function switchLanguage(lang) {
+    localStorage.setItem('tam_lang', lang);
+    applyTranslations(lang);
+}
+
+function toggleLanguage() {
+    const currentLang = localStorage.getItem('tam_lang') || 'en';
+    const newLang = currentLang === 'en' ? 'id' : 'en';
+    switchLanguage(newLang);
+}
+
+function applyTranslations(lang) {
+    const t = translations[lang] || translations['en'] || {};
+    
+    const displayLangText = lang === 'en' ? 'En' : 'Id';
+    const desktopTextEl = document.getElementById('langDesktopText');
+    const mobileTextEl = document.getElementById('langMobileText');
+    if (desktopTextEl) desktopTextEl.textContent = displayLangText;
+    if (mobileTextEl) mobileTextEl.textContent = displayLangText;
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key]) {
+            el.innerHTML = t[key];
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (t[key]) {
+            el.setAttribute('placeholder', t[key]);
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadTranslations();
+});
+    </script>
+
+    <!-- JavaScript Handling -->
+    <script>
+        // Navbar Scroll Effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 30) navbar.classList.add('scrolled');
+            else navbar.classList.remove('scrolled');
+        });
+
+        // Scroll To Top Button
+        const scrollTopBtn = document.querySelector('.scroll-to-top');
+        if (scrollTopBtn) {
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 300) scrollTopBtn.classList.add('show');
+                else scrollTopBtn.classList.remove('show');
+            });
+
+            scrollTopBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        // Pop-up Term of Service Modal
+        const openBtn = document.getElementById('open-terms');
+        const closeBtn = document.getElementById('close-terms');
+        const acceptBtn = document.getElementById('accept-terms-btn');
+        const modal = document.getElementById('terms-modal');
+
+        if (openBtn && modal) {
+            openBtn.addEventListener('click', (e) => { 
+                e.preventDefault(); 
+                modal.classList.add('active'); 
+                document.body.style.overflow = 'hidden'; 
+            });
+            function closeModal() { 
+                modal.classList.remove('active'); 
+                document.body.style.overflow = 'auto'; 
+            }
+            if (closeBtn) closeBtn.addEventListener('click', closeModal);
+            if (acceptBtn) acceptBtn.addEventListener('click', closeModal);
+            window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        }
+
+        // Mobile Hamburger Menu & Sub-menu Toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navLinks = document.getElementById('navLinks');
+        const dropdownToggle = document.getElementById('dropdownToggle');
+
+        if (mobileMenuBtn && navLinks) {
+            mobileMenuBtn.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+                const icon = mobileMenuBtn.querySelector('i');
+                if (navLinks.classList.contains('active')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-xmark');
+                } else {
+                    icon.classList.remove('fa-xmark');
+                    icon.classList.add('fa-bars');
+                }
+            });
+        }
+
+        if (dropdownToggle) {
+            dropdownToggle.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768) {
+                    e.preventDefault();
+                    const parentDropdown = this.closest('.dropdown');
+                    parentDropdown.classList.toggle('active');
+                }
+            });
+        }
+        // Logika untuk membuka Submenu Industrial di Mobile
+const submenuToggles = document.querySelectorAll('.dropdown-submenu > a');
+submenuToggles.forEach(toggle => {
+    toggle.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768) {
+            e.preventDefault();
+            const parentSub = this.closest('.dropdown-submenu');
+            parentSub.classList.toggle('active');
+        }
+    });
+});
+    </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/site-settings')
+        .then(res => res.json())
+        .then(data => {
+            if (data.logo_dark) {
+                const mainLogo = document.querySelector('.large-tam-logo');
+                if (mainLogo) mainLogo.src = data.logo_dark;
+                document.querySelectorAll('.logo-initial, .logo-scrolled').forEach(img => img.src = data.logo_dark);
+            }
+            if (data.logo_white) {
+                const footerLogo = document.querySelector('.logo-img-footer');
+                if (footerLogo) footerLogo.src = data.logo_white;
+            }
+
+            if (data.footer_company_name) {
+                const compName = document.querySelector('.company-title-green');
+                if (compName) compName.textContent = data.footer_company_name;
+            }
+            if (data.footer_address) {
+                const addressP = document.querySelector('.footer-col .address');
+                if (addressP) addressP.innerHTML = `<span class="address-label" data-i18n="addressLabel">Address:</span><br>${data.footer_address.replace(/\n/g, '<br>')}`;
+            }
+            if (data.footer_phone) {
+                const phoneP = document.querySelector('.contact-info');
+                if (phoneP) phoneP.innerHTML = `Head Office :<br>${data.footer_phone}`;
+            }
+            if (data.footer_working_hours) {
+                const hoursP = document.querySelector('.working-hours');
+                if (hoursP) hoursP.textContent = data.footer_working_hours;
+            }
+            if (data.footer_linkedin) {
+                const linkIn = document.querySelector('.social-icons a[href*="linkedin"]');
+                if (linkIn) linkIn.href = data.footer_linkedin;
+            }
+            if (data.footer_facebook) {
+                const fb = document.querySelector('.social-icons a[href*="facebook"]');
+                if (fb) fb.href = data.footer_facebook;
+            }
+            if (data.footer_instagram) {
+                const ig = document.querySelector('.social-icons a[href*="instagram"]');
+                if (ig) ig.href = data.footer_instagram;
+            }
+            // if (data.footer_copyright) {
+            //     const copyP = document.querySelector('.footer-bottom p');
+            //     if (copyP) copyP.innerHTML = data.footer_copyright;
+            // }
+        })
+        .catch(err => console.error("Gagal memuat pengaturan situs:", err));
+});
+
+// Skrip otomatis untuk membaca parameter ?redirect=... dari URL browser
+const urlParams = new URLSearchParams(window.location.search);
+const redirectTarget = urlParams.get('redirect');
+if (redirectTarget) {
+    document.getElementById('redirectInput').value = redirectTarget;
+}
+</script>
+</body>
+</html>

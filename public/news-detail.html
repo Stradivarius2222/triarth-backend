@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">News Detail - PT Tritunggal Arthamakmur</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Gaya Tombol Bahasa Kustom (Pill Style) */
+        .lang-pill-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #0366d6;
+            background: transparent;
+            padding: 6px 14px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: none;
+            border: none;
+        }
+        .lang-pill-btn:hover {
+            background-color: transparent;
+            border-color: #0366d6;
+        }
+        .lang-pill-btn i {
+            font-size: 1rem;
+            color: #0366d6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar navbar-light">
+        <div class="container navbar-content">
+            <!-- Logo Kiri -->
+            <a href="/" class="logo">
+                <img src="/images/logo.png" alt="PT Tritunggal Arthamakmur" class="logo-img logo-initial" draggable="false">
+                <img src="/images/logo.png" alt="PT Tritunggal Arthamakmur" class="logo-img logo-scrolled" draggable="false">
+            </a>
+
+            <!-- Menu Tengah -->
+            <nav class="nav-links" id="navLinks">
+                <a href="/about" data-i18n="aboutUs">About Us</a>
+                <div class="dropdown">
+                    <a href="javascript:void(0)" id="dropdownToggle"><span data-i18n="segments">Segments</span> <i class="fa-solid fa-chevron-down text-xs"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/segments/personal-care" data-i18n="segPersonal">Personal Care</a>
+                        <a href="/segments/pharmaceutical-functional-food" data-i18n="segPharma">Pharmaceutical & Functional Food</a>
+                        <!-- Menu Industrial dengan Submenu di Kanan -->
+                        <div class="dropdown-submenu">
+                            <a href="javascript:void(0)" data-i18n="segIndustrial">Industrial</a>
+                            <div class="submenu-content">
+                                <a href="/segments/home-care-ii" data-i18n="segHome">Home Care I&I</a>
+                                <a href="/segments/veterinary-feedmill" data-i18n="segVet">Veterinary & Feedmill</a>
+                                <a href="/segments/processing-chemicals" data-i18n="segProcess">Processing Chemicals</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                            <a href="/principals" data-i18n="principals">Principals</a> <!-- Tambahkan ini -->
+
+                <a href="/news" class="active" data-i18n="news">News</a>
+                <a href="/contact" data-i18n="contact">Contact Us</a>
+
+                <!-- Tombol Switcher Bahasa Mobile & Auth -->
+                <div class="mobile-auth-wrapper">
+                    <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+                        <button onclick="toggleLanguage()" class="lang-pill-btn" id="langMobileBtn">
+                            <i class="fa-solid fa-globe"></i>
+                            <span id="langMobileText">En</span>
+                        </button>
+                    </div>
+                    <a href="/signup" class="mobile-signup-link" data-i18n="signUp">Sign Up</a>
+                    <a href="/signin" class="mobile-signin-btn" data-i18n="signIn">Sign In</a>
+                </div>
+            </nav>
+
+            <!-- Auth Buttons Desktop & Language Switcher -->
+            <div class="auth-buttons" style="display: flex; align-items: center; gap: 12px;">
+                <!-- Tombol Pill Bahasa Desktop -->
+                <button onclick="toggleLanguage()" class="lang-pill-btn" id="langDesktopBtn" title="Switch Language">
+                    <i class="fa-solid fa-globe"></i>
+                    <span id="langDesktopText">En</span>
+                </button>
+                <a href="/signup" class="btn-signup" data-i18n="signUp">Sign Up</a>
+                <a href="/signin" class="btn-signin" data-i18n="signIn">Sign In</a>
+            </div>
+
+            <!-- Tombol Mobile Hamburger Menu -->
+            <button class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle Menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main News Detail Content (Dinamis) -->
+    <main class="news-detail-main">
+        <div class="container news-detail-container" id="newsDetailContainer">
+            
+            <a href="/news" class="back-to-news">
+                <i class="fa-solid fa-arrow-left"></i> <span data-i18n="backToNews">Back to News</span>
+            </a>
+
+            <span class="news-detail-date" id="newsDate">-</span>
+            <h1 class="news-detail-title" id="newsTitle">Memuat berita...</h1>
+            <img src="" alt="News Image" class="news-detail-image" id="newsImage" style="display:none;">
+
+            <div class="news-detail-content" id="newsContent">
+                <p data-i18n="loadingContent">Sedang mengambil konten artikel...</p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer Gelap -->
+    <footer class="footer">
+        <div class="container footer-container">
+            <div class="footer-col brand-col">
+                <div class="footer-logo">
+                    <a href="/">
+                        <img src="/images/logo2.png" alt="PT Tritunggal Arthamakmur" class="logo-img-footer" draggable="false">
+                    </a>
+                </div>
+                <p class="company-title-green">PT Tritunggal Arthamakmur</p>
+                <p class="address">
+                    <span class="address-label" data-i18n="addressLabel">Address:</span><br>
+                    Komplek Graha Kencana Blok AB<br>
+                    Jl. Raya Pejuangan No. 88<br>
+                    Kebon Jeruk, Jakarta Barat<br>
+                    Jakarta 11530 Indonesia
+                </p>
+            </div>
+
+            <div class="footer-col">
+                <h4 data-i18n="navColTitle">Navigation</h4>
+                <ul>
+                    <li><a href="/" data-i18n="home">Home</a></li>
+                    <li><a href="/about" data-i18n="aboutUs">ABOUT US</a></li>
+                    <li><a href="/principals" data-i18n="principals">Principals</a></li>
+                    <li><a href="/news" data-i18n="news">NEWS</a></li>
+                    <li><a href="/contact" data-i18n="contact">CONTACT US</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4 data-i18n="segments">Segments</h4>
+                <ul>
+                    <li><a href="/segments/personal-care" data-i18n="segPersonal">Personal Care, Cosmetic & Fragrance</a></li>
+                    <li><a href="/segments/pharmaceutical-functional-food" data-i18n="segPharma">Pharmaceutical & Nutraceutical</a></li>
+                    <li><a href="/segments/home-care-ii" data-i18n="segHome">Home Care I&I</a></li>
+                    <li><a href="/segments/veterinary-feedmill" data-i18n="segVet">Feedmill & Animal Health</a></li>
+                    <li><a href="/segments/processing-chemicals" data-i18n="segProcess">Processing Chemicals</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4 data-i18n="contact">Contact</h4>
+                <p class="contact-info">Head Office :<br>+62 21 53677181 (Hunting)</p>
+                <p class="working-hours" data-i18n="workingHours">We are open: Mon - Fri: 8am - 5pm</p>
+                <div class="social-icons">
+                    <a href="https://www.linkedin.com/company/tritunggalarthamakmur/home/" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-linkedin-in"></i></a>
+                    <a href="https://www.facebook.com/tritunggalarthamakmur" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://www.instagram.com/tritunggalarthamakmur/" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 <span class="highlight-green">Tritunggal Arthamakmur</span>. <span data-i18n="rightsText">All rights reserved</span></p>
+        </div>
+    </footer>
+
+    <!-- Floating Chevron Scroll To Top -->
+    <a href="#" class="scroll-to-top">
+        <i class="fa-solid fa-chevron-up"></i>
+    </a>
+
+    <!-- SKRIP MULTI-LANGUAGE DICTIONARY -->
+    <script>
+let translations = { en: {}, id: {} };
+
+// Ambil data terjemahan secara dinamis dari database via API backend
+function loadTranslations() {
+    fetch('/api/translations')
+        .then(res => res.json())
+        .then(data => {
+            translations = data;
+            const savedLang = localStorage.getItem('tam_lang') || 'en';
+            applyTranslations(savedLang);
+        })
+        .catch(err => console.error("Gagal memuat terjemahan:", err));
+}
+
+function switchLanguage(lang) {
+    localStorage.setItem('tam_lang', lang);
+    applyTranslations(lang);
+}
+
+function toggleLanguage() {
+    const currentLang = localStorage.getItem('tam_lang') || 'en';
+    const newLang = currentLang === 'en' ? 'id' : 'en';
+    switchLanguage(newLang);
+}
+
+function applyTranslations(lang) {
+    const t = translations[lang] || translations['en'] || {};
+    
+    const displayLangText = lang === 'en' ? 'En' : 'Id';
+    const desktopTextEl = document.getElementById('langDesktopText');
+    const mobileTextEl = document.getElementById('langMobileText');
+    if (desktopTextEl) desktopTextEl.textContent = displayLangText;
+    if (mobileTextEl) mobileTextEl.textContent = displayLangText;
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key]) {
+            el.innerHTML = t[key];
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (t[key]) {
+            el.setAttribute('placeholder', t[key]);
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadTranslations();
+});
+    </script>
+
+    <!-- JavaScript Handling & Fetch Artikel -->
+    <script>
+        // Navbar Scroll Effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 30) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Scroll To Top Button
+        const scrollTopBtn = document.querySelector('.scroll-to-top');
+        if (scrollTopBtn) {
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 300) scrollTopBtn.classList.add('show');
+                else scrollTopBtn.classList.remove('show');
+            });
+            scrollTopBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        // Fetch Data Berita Dinamis Berdasarkan URL Slug
+        document.addEventListener('DOMContentLoaded', function() {
+            const params = new URLSearchParams(window.location.search);
+            const slug = params.get('slug');
+
+            if (!slug) {
+                document.getElementById('newsDetailContainer').innerHTML = '<h2>Berita tidak ditemukan.</h2><p style="margin-top: 15px;"><a href="/news" class="back-to-news"><i class="fa-solid fa-arrow-left"></i> Kembali ke halaman News</a></p>';
+                return;
+            }
+
+            fetch(`/api/news/${slug}`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Berita tidak ditemukan');
+                    return res.json();
+                })
+                .then(article => {
+                    document.getElementById('pageTitle').textContent = article.title + ' - PT Tritunggal Arthamakmur';
+                    document.getElementById('newsTitle').innerHTML = article.title;
+                    
+                    const dateObj = new Date(article.created_at);
+                    const formattedDate = isNaN(dateObj) ? article.created_at : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    document.getElementById('newsDate').textContent = `${formattedDate} | By ${article.author_name || 'Admin'}`;
+
+                    if (article.image_url && article.image_url.trim() !== '') {
+                        const imgEl = document.getElementById('newsImage');
+                        imgEl.src = article.image_url;
+                        imgEl.style.display = 'block';
+                    } else {
+                        document.getElementById('newsImage').style.display = 'none';
+                    }
+
+                    const contentContainer = document.getElementById('newsContent');
+                    contentContainer.innerHTML = article.content;
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('newsDetailContainer').innerHTML = '<h2>Artikel Gagal Dimuat</h2><p style="margin-top: 10px;">Berita yang Anda cari mungkin sudah dihapus atau tautan tidak valid.</p><p style="margin-top: 20px;"><a href="/news" class="back-to-news"><i class="fa-solid fa-arrow-left"></i> Kembali ke News</a></p>';
+                });
+        });
+
+        // Hamburger Menu & Sub-Menu Toggle untuk Mobile Drawer
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navLinks = document.getElementById('navLinks');
+        const dropdownToggle = document.getElementById('dropdownToggle');
+
+        if (mobileMenuBtn && navLinks) {
+            mobileMenuBtn.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+                const icon = mobileMenuBtn.querySelector('i');
+                if (navLinks.classList.contains('active')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-xmark');
+                } else {
+                    icon.classList.remove('fa-xmark');
+                    icon.classList.add('fa-bars');
+                }
+            });
+        }
+
+        if (dropdownToggle) {
+            dropdownToggle.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768) {
+                    e.preventDefault();
+                    this.closest('.dropdown').classList.toggle('active');
+                }
+            });
+        }
+        // Logika untuk membuka Submenu Industrial di Mobile
+const submenuToggles = document.querySelectorAll('.dropdown-submenu > a');
+submenuToggles.forEach(toggle => {
+    toggle.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768) {
+            e.preventDefault();
+            const parentSub = this.closest('.dropdown-submenu');
+            parentSub.classList.toggle('active');
+        }
+    });
+});
+    </script>
+
+    <!-- Script CMS Settings -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/api/site-settings')
+            .then(res => res.json())
+            .then(data => {
+                if (data.logo_dark) {
+                    document.querySelectorAll('.logo-initial, .logo-scrolled').forEach(img => img.src = data.logo_dark);
+                }
+                if (data.logo_white) {
+                    const footerLogo = document.querySelector('.logo-img-footer');
+                    if (footerLogo) footerLogo.src = data.logo_white;
+                }
+                if (data.footer_company_name) {
+                    const compName = document.querySelector('.company-title-green');
+                    if (compName) compName.textContent = data.footer_company_name;
+                }
+                if (data.footer_address) {
+                    const addressP = document.querySelector('.footer-col .address');
+                    if (addressP) addressP.innerHTML = `<span class="address-label" data-i18n="addressLabel">Address:</span><br>${data.footer_address.replace(/\n/g, '<br>')}`;
+                }
+                if (data.footer_phone) {
+                    const phoneP = document.querySelector('.contact-info');
+                    if (phoneP) phoneP.innerHTML = `Head Office :<br>${data.footer_phone}`;
+                }
+                if (data.footer_working_hours) {
+                    const hoursP = document.querySelector('.working-hours');
+                    if (hoursP) hoursP.textContent = data.footer_working_hours;
+                }
+                if (data.footer_linkedin) {
+                    const linkIn = document.querySelector('.social-icons a[href*="linkedin"]');
+                    if (linkIn) linkIn.href = data.footer_linkedin;
+                }
+                if (data.footer_facebook) {
+                    const fb = document.querySelector('.social-icons a[href*="facebook"]');
+                    if (fb) fb.href = data.footer_facebook;
+                }
+                if (data.footer_instagram) {
+                    const ig = document.querySelector('.social-icons a[href*="instagram"]');
+                    if (ig) ig.href = data.footer_instagram;
+                }
+                // if (data.footer_copyright) {
+                //     const copyP = document.querySelector('.footer-bottom p');
+                //     if (copyP) copyP.innerHTML = data.footer_copyright;
+                // }
+            })
+            .catch(err => console.error("Gagal memuat pengaturan situs:", err));
+    });
+    </script>
+</body>
+</html>
