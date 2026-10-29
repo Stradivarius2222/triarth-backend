@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
         cb(null, file.fieldname + '-' + uniqueSuffix + ext);
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ==========================================
 // KONFIGURASI APLIKASI & RESEND
@@ -753,18 +753,35 @@ app.get('/editor/dashboard', async (req, res) => {
 
 app.post('/editor/news', upload.single('image'), async (req, res) => {
     if (!isEditorOrAdmin(req)) return res.status(403).send('Unauthorized');
-    const { title, content } = req.body;
-    const cleanTitleForSlug = title.replace(/<[^>]*>?/gm, '');
-    const slug = cleanTitleForSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
 
     try {
+        const { title, content } = req.body;
+
+        if (!title || !content) {
+            return res.status(400).send('Judul dan konten wajib diisi.');
+        }
+
+        // Bersihkan tag HTML dari Summernote untuk membuat slug URL
+        const cleanTitleForSlug = title.replace(/<[^>]*>?/gm, '').trim();
+        const slug = cleanTitleForSlug.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '') + '-' + Date.now();
+
+        // Jika upload file via memoryStorage (URL disesuaikan/placeholder)
+        let imageUrl = '';
+        if (req.file) {
+            // Contoh URL path lokal/base64 atau integrasi cloud storage
+            imageUrl = `/uploads/${Date.now()}-${req.file.originalname}`;
+        }
+
         await db.execute({
             sql: `INSERT INTO news (title, slug, content, image_url, author_id) VALUES (?, ?, ?, ?, ?)`,
             args: [title, slug, content, imageUrl, req.session.user.id]
         });
+
         res.redirect('/editor/dashboard');
     } catch (err) {
+        console.error('Error saat membuat berita:', err);
         res.status(500).send('Gagal menyimpan berita: ' + err.message);
     }
 });
