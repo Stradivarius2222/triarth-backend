@@ -9,7 +9,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 const XLSX = require('xlsx');
 
-// Import Client Turso (libSQL) menggantikan sql.js
+// Import Client Turso (libSQL)
 const { createClient } = require('@libsql/client');
 
 // ==========================================
@@ -117,14 +117,12 @@ async function initDatabase() {
             banner_image TEXT
         )`);
 
-        // Buat Akun Admin Default jika Belum Ada
         const hashedPass = await bcrypt.hash('admin123', 10);
         await db.execute({
             sql: `INSERT OR IGNORE INTO users (id, name, email, password, role, status) VALUES (1, 'Admin', 'admin@triarth.com', ?, 'admin', 'active')`,
             args: [hashedPass]
         });
 
-        // Insert Default Translations
         const defaultTranslations = [
             ['aboutUs', 'About Us', 'Tentang Kami'],
             ['segments', 'Segments', 'Segmen'],
@@ -163,7 +161,6 @@ async function initDatabase() {
             });
         }
 
-        // Insert Default Partners
         const defaultPartners = [
             ['Linqtec', '/images/partners/linqtec.png', 'https://www.linqtec.com/en/'],
             ['Corbion', '/images/partners/corbion_logo.png', 'https://www.corbion.com/biochemicals'],
@@ -188,7 +185,6 @@ async function initDatabase() {
             });
         }
 
-        // Insert Default Settings
         const defaultSettings = [
             ['logo_white', '/images/logo2.png'],
             ['logo_dark', '/images/logo.png'],
@@ -2290,7 +2286,6 @@ app.get('/admin/cms', async (req, res) => {
                     </div>
                 </form>
 
-                <!-- SECTION KELOLA TRANSLATIONS (NON-HARDCODE) -->
                 <div class="section-card">
                     <h2><i class="fa-solid fa-language"></i> Kelola Terjemahan Bahasa (En / Id)</h2>
                     <form action="/admin/cms/translations/update" method="POST">
@@ -2388,52 +2383,50 @@ app.get('/admin/cms', async (req, res) => {
 });
 
 // ==========================================
-// API ENDPOINTS UNTUK TRANSLATIONS (NON-HARDCODE)
+// API ENDPOINTS UNTUK TRANSLATIONS
 // ==========================================
-app.get('/api/translations', (req, res) => {
+app.get('/api/translations', async (req, res) => {
     try {
-        const result = db.exec(`SELECT translation_key, en_text, id_text FROM translations`);
+        const result = await db.execute(`SELECT translation_key, en_text, id_text FROM translations`);
         let translations = { en: {}, id: {} };
         
-        if (result.length > 0) {
-            result[0].values.forEach(row => {
-                const [key, enText, idText] = row;
-                translations.en[key] = enText;
-                translations.id[key] = idText;
-            });
-        }
+        result.rows.forEach(row => {
+            translations.en[row.translation_key] = row.en_text;
+            translations.id[row.translation_key] = row.id_text;
+        });
         res.json(translations);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/admin/cms/translations/update', (req, res) => {
+app.post('/admin/cms/translations/update', async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send('Unauthorized');
     
     try {
         const body = req.body;
-        
         for (const [key, value] of Object.entries(body)) {
             if (key.startsWith('en_')) {
                 const tKey = key.replace('en_', '');
-                db.run(`UPDATE translations SET en_text = ? WHERE translation_key = ?`, [value, tKey]);
+                await db.execute({
+                    sql: `UPDATE translations SET en_text = ? WHERE translation_key = ?`,
+                    args: [value, tKey]
+                });
             } else if (key.startsWith('id_')) {
                 const tKey = key.replace('id_', '');
-                db.run(`UPDATE translations SET id_text = ? WHERE translation_key = ?`, [value, tKey]);
+                await db.execute({
+                    sql: `UPDATE translations SET id_text = ? WHERE translation_key = ?`,
+                    args: [value, tKey]
+                });
             }
         }
-        
-        saveDatabase();
         res.redirect('/admin/cms');
     } catch (err) {
         res.status(500).send('Gagal memperbarui terjemahan: ' + err.message);
     }
 });
 
-// Update Pengaturan CMS & Handle Multi-Upload File Gambar Lengkap
-// Update Pengaturan CMS & Handle Multi-Upload File Gambar Lengkap
-app.post('/admin/settings/update', (req, res) => {
+app.post('/admin/settings/update', async (req, res) => {
     upload.fields([
         { name: 'logo_white_file', maxCount: 1 },
         { name: 'logo_dark_file', maxCount: 1 },
@@ -2474,7 +2467,7 @@ app.post('/admin/settings/update', (req, res) => {
         { name: 'app_proc_textile_img_file', maxCount: 1 },
         { name: 'app_proc_water_img_file', maxCount: 1 },
         { name: 'app_proc_cropcare_img_file', maxCount: 1 }
-    ])(req, res, function (err) {
+    ])(req, res, async function (err) {
         if (err) return res.status(500).send('Gagal mengunggah gambar: ' + err.message);
         if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send('Unauthorized');
 
@@ -2482,7 +2475,10 @@ app.post('/admin/settings/update', (req, res) => {
             const formData = req.body || {};
             for (const [key, value] of Object.entries(formData)) {
                 if (value !== undefined && value !== null) {
-                    db.run(`INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)`, [key, value]);
+                    await db.execute({
+                        sql: `INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)`,
+                        args: [key, value]
+                    });
                 }
             }
 
@@ -2529,17 +2525,17 @@ app.post('/admin/settings/update', (req, res) => {
             ];
 
             if (req.files) {
-                fileKeys.forEach(item => {
+                for (const item of fileKeys) {
                     if (req.files[item.field] && req.files[item.field][0]) {
                         const imgPath = '/uploads/' + req.files[item.field][0].filename;
-                        db.run(`INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)`, [item.dbKey, imgPath]);
+                        await db.execute({
+                            sql: `INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)`,
+                            args: [item.dbKey, imgPath]
+                        });
                     }
-                });
+                }
             }
 
-            // PANGGIL saveDatabase() AGAR TERSIMPAN KE FILE FISIK TRIAARTH.SQLITE
-            saveDatabase();
-            
             res.redirect('/admin/cms');
         } catch (dbErr) {
             res.status(500).send('Gagal memperbarui pengaturan: ' + dbErr.message);
@@ -2547,21 +2543,23 @@ app.post('/admin/settings/update', (req, res) => {
     });
 });
 
-app.post('/admin/partners/add', upload.single('logo'), (req, res) => {
+app.post('/admin/partners/add', upload.single('logo'), async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send('Unauthorized');
     const { name, website_url } = req.body;
     const logoUrl = req.file ? `/uploads/${req.file.filename}` : '';
 
     try {
-        db.run(`INSERT INTO partners (name, logo_url, website_url) VALUES (?, ?, ?)`, [name, logoUrl, website_url]);
-        saveDatabase();
+        await db.execute({
+            sql: `INSERT INTO partners (name, logo_url, website_url) VALUES (?, ?, ?)`,
+            args: [name, logoUrl, website_url]
+        });
         res.redirect('/admin/cms');
     } catch (err) {
         res.status(500).send('Gagal menambah partner: ' + err.message);
     }
 });
 
-app.post('/admin/partners/edit/:id', upload.single('logo'), (req, res) => {
+app.post('/admin/partners/edit/:id', upload.single('logo'), async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send('Unauthorized');
 
     const { name, website_url } = req.body;
@@ -2570,22 +2568,29 @@ app.post('/admin/partners/edit/:id', upload.single('logo'), (req, res) => {
     try {
         if (req.file) {
             const logoUrl = `/uploads/${req.file.filename}`;
-            db.run(`UPDATE partners SET name = ?, website_url = ?, logo_url = ? WHERE id = ?`, [name, website_url, logoUrl, partnerId]);
+            await db.execute({
+                sql: `UPDATE partners SET name = ?, website_url = ?, logo_url = ? WHERE id = ?`,
+                args: [name, website_url, logoUrl, partnerId]
+            });
         } else {
-            db.run(`UPDATE partners SET name = ?, website_url = ? WHERE id = ?`, [name, website_url, partnerId]);
+            await db.execute({
+                sql: `UPDATE partners SET name = ?, website_url = ? WHERE id = ?`,
+                args: [name, website_url, partnerId]
+            });
         }
-        saveDatabase();
         res.redirect('/admin/cms');
     } catch (err) {
         res.status(500).send('Gagal memperbarui partner: ' + err.message);
     }
 });
 
-app.post('/admin/partners/delete/:id', (req, res) => {
+app.post('/admin/partners/delete/:id', async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send('Unauthorized');
     try {
-        db.run(`DELETE FROM partners WHERE id = ?`, [req.params.id]);
-        saveDatabase();
+        await db.execute({
+            sql: `DELETE FROM partners WHERE id = ?`,
+            args: [req.params.id]
+        });
         res.redirect('/admin/cms');
     } catch (err) {
         res.status(500).send('Gagal menghapus partner: ' + err.message);
@@ -2606,20 +2611,12 @@ app.get('/api/all-products', async (req, res) => {
     }
 });
 
-// API untuk mengambil opsi filter global (Principal, Segment, Function, Application)
-app.get('/api/all-filter-options', (req, res) => {
+// API untuk mengambil opsi filter global
+app.get('/api/all-filter-options', async (req, res) => {
     try {
-        const result = db.exec(`SELECT DISTINCT principal, segment, function, application FROM products`);
-        let rows = [];
-        if (result.length > 0) {
-            const columns = result[0].columns;
-            rows = result[0].values.map(row => {
-                let obj = {};
-                columns.forEach((col, i) => obj[col] = row[i]);
-                return obj;
-            });
-        }
-        
+        const result = await db.execute(`SELECT DISTINCT principal, segment, function, application FROM products`);
+        const rows = result.rows;
+
         const principals = [...new Set(rows.map(r => r.principal).filter(Boolean))].sort();
         const segments = [...new Set(rows.map(r => r.segment).filter(Boolean))].sort();
         const functions = [...new Set(rows.map(r => r.function).filter(Boolean))].sort();
@@ -2627,7 +2624,6 @@ app.get('/api/all-filter-options', (req, res) => {
 
         res.json({ principals, segments, functions, applications });
     } catch (err) {
-        console.error(err.message);
         res.status(500).json({ error: 'Gagal mengambil opsi filter' });
     }
 });
@@ -2635,67 +2631,48 @@ app.get('/api/all-filter-options', (req, res) => {
 // ==========================================
 // API PUBLIK
 // ==========================================
-app.get('/api/site-settings', (req, res) => {
+app.get('/api/site-settings', async (req, res) => {
     try {
-        const result = db.exec(`SELECT * FROM site_settings`);
+        const result = await db.execute(`SELECT * FROM site_settings`);
         let settings = {};
-        if (result.length > 0) {
-            result[0].values.forEach(row => { settings[row[0]] = row[1]; });
-        }
+        result.rows.forEach(row => { settings[row.key] = row.value; });
         res.json(settings);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/partners', (req, res) => {
+app.get('/api/partners', async (req, res) => {
     try {
-        const result = db.exec(`SELECT * FROM partners ORDER BY id DESC`);
-        let partners = [];
-        if (result.length > 0) {
-            const cols = result[0].columns;
-            partners = result[0].values.map(row => {
-                let obj = {}; cols.forEach((c, i) => obj[c] = row[i]); return obj;
-            });
-        }
-        res.json(partners);
+        const result = await db.execute(`SELECT * FROM partners ORDER BY id DESC`);
+        res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/news', (req, res) => {
+app.get('/api/news', async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 6; // 6 berita per halaman
+        const limit = 6;
         const offset = (page - 1) * limit;
 
-        // Hitung total berita keseluruhan
-        const countStmt = db.prepare(`SELECT COUNT(*) as total FROM news`);
-        let totalNews = 0;
-        if (countStmt.step()) {
-            totalNews = countStmt.getAsObject().total;
-        }
-        countStmt.free();
+        const countRes = await db.execute(`SELECT COUNT(*) as total FROM news`);
+        const totalNews = countRes.rows[0].total;
 
-        // Ambil data berita sesuai halaman (LIMIT & OFFSET)
-        const stmt = db.prepare(`
-            SELECT news.*, users.name as author_name 
-            FROM news 
-            JOIN users ON news.author_id = users.id 
-            ORDER BY created_at DESC 
-            LIMIT ? OFFSET ?
-        `);
-        stmt.bind([limit, offset]);
-
-        let newsList = [];
-        while (stmt.step()) {
-            newsList.push(stmt.getAsObject());
-        }
-        stmt.free();
+        const newsRes = await db.execute({
+            sql: `
+                SELECT news.*, users.name as author_name 
+                FROM news 
+                JOIN users ON news.author_id = users.id 
+                ORDER BY created_at DESC 
+                LIMIT ? OFFSET ?
+            `,
+            args: [limit, offset]
+        });
 
         res.json({
-            news: newsList,
+            news: newsRes.rows,
             currentPage: page,
             totalPages: Math.ceil(totalNews / limit)
         });
@@ -2704,17 +2681,16 @@ app.get('/api/news', (req, res) => {
     }
 });
 
-app.get('/api/news/:slug', (req, res) => {
+app.get('/api/news/:slug', async (req, res) => {
     try {
-        const stmt = db.prepare(`SELECT news.*, users.name as author_name FROM news JOIN users ON news.author_id = users.id WHERE news.slug = ?`);
-        stmt.bind([req.params.slug]);
+        const result = await db.execute({
+            sql: `SELECT news.*, users.name as author_name FROM news JOIN users ON news.author_id = users.id WHERE news.slug = ?`,
+            args: [req.params.slug]
+        });
 
-        if (stmt.step()) {
-            const article = stmt.getAsObject();
-            stmt.free();
-            res.json(article);
+        if (result.rows.length > 0) {
+            res.json(result.rows[0]);
         } else {
-            stmt.free();
             res.status(404).json({ error: 'Berita tidak ditemukan' });
         }
     } catch (err) {
@@ -2734,21 +2710,20 @@ app.get('/products/:slug', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'product-detail.html'));
 });
 
-app.get('/api/products/:slug', (req, res) => {
+app.get('/api/products/:slug', async (req, res) => {
     try {
-        const stmt = db.prepare(`SELECT * FROM products WHERE slug = ?`);
-        stmt.bind([req.params.slug]);
+        const result = await db.execute({
+            sql: `SELECT * FROM products WHERE slug = ?`,
+            args: [req.params.slug]
+        });
 
-        if (stmt.step()) {
-            const product = stmt.getAsObject();
-            stmt.free();
-
+        if (result.rows.length > 0) {
+            const product = result.rows[0];
             if (!req.session.user) {
                 product.formula_pdf = null;
             }
             res.json(product);
         } else {
-            stmt.free();
             res.status(404).json({ error: 'Produk tidak ditemukan' });
         }
     } catch (err) {
@@ -2760,7 +2735,7 @@ app.get('/logout', (req, res) => {
     req.session.destroy(() => res.redirect('/signin'));
 });
 
-app.post('/admin/products/upload-by-segment', upload.single('product_file'), (req, res) => {
+app.post('/admin/products/upload-by-segment', upload.single('product_file'), async (req, res) => {
     if (!isEditorOrAdmin(req)) return res.status(403).send('Unauthorized');
     if (!req.file) return res.status(400).send('File Excel/CSV tidak ditemukan.');
 
@@ -2771,7 +2746,7 @@ app.post('/admin/products/upload-by-segment', upload.single('product_file'), (re
         const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
         let insertedCount = 0;
-        sheetData.forEach(row => {
+        for (const row of sheetData) {
             const segment = row.Segment || row.segment || defaultSegment;
             const principal = row.Principal || row.principal || '-';
             const productName = row['Product Name'] || row.product_name || '';
@@ -2782,27 +2757,22 @@ app.post('/admin/products/upload-by-segment', upload.single('product_file'), (re
             const formulaPdf = row['Formula PDF'] || row.formula_pdf || '';
 
             if (productName) {
-                const checkStmt = db.prepare(`SELECT COUNT(*) as count FROM products WHERE product_name = ? AND segment = ?`);
-                checkStmt.bind([productName, segment]);
-                let exists = false;
-                if (checkStmt.step()) {
-                    if (checkStmt.getAsObject().count > 0) {
-                        exists = true;
-                    }
-                }
-                checkStmt.free();
+                const checkRes = await db.execute({
+                    sql: `SELECT COUNT(*) as count FROM products WHERE product_name = ? AND segment = ?`,
+                    args: [productName, segment]
+                });
 
-                if (!exists) {
+                if (checkRes.rows[0].count === 0) {
                     const slug = productName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Math.floor(Math.random() * 10000);
-                    db.run(`INSERT INTO products (segment, principal, product_name, slug, inci_name, description, function, application, formula_pdf) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                        [segment, principal, productName, slug, inciName, description, func, application, formulaPdf]
-                    );
+                    await db.execute({
+                        sql: `INSERT INTO products (segment, principal, product_name, slug, inci_name, description, function, application, formula_pdf) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        args: [segment, principal, productName, slug, inciName, description, func, application, formulaPdf]
+                    });
                     insertedCount++;
                 }
             }
-        });
+        }
 
-        saveDatabase();
         fs.unlinkSync(req.file.path);
         res.send(renderMessagePage('Berhasil!', `Data produk dari file Excel berhasil di-upload (${insertedCount} produk baru ditambahkan, duplikat dilewati).`, 'success', '/admin/products/dashboard', 'Kembali ke Kelola Produk'));
     } catch (err) {
@@ -2810,24 +2780,30 @@ app.post('/admin/products/upload-by-segment', upload.single('product_file'), (re
     }
 });
 
-app.post('/admin/upload-product-pdf', upload.single('formula_pdf'), (req, res) => {
+app.post('/admin/upload-product-pdf', upload.single('formula_pdf'), async (req, res) => {
     if (!isEditorOrAdmin(req)) return res.status(403).send('Unauthorized');
     if (!req.file) return res.status(400).send('File PDF tidak ditemukan.');
 
     const { segment, product_name } = req.body;
     const pdfUrl = `/uploads/${req.file.filename}`;
     try {
-        db.run(`INSERT INTO product_formulas (product_name, segment, pdf_url) VALUES (?, ?, ?)`, [product_name, segment, pdfUrl]);
-        db.run(`UPDATE products SET formula_pdf = ? WHERE product_name = ? AND segment = ?`, [pdfUrl, product_name, segment]);
-        
-        saveDatabase();
+        await db.execute({
+            sql: `INSERT INTO product_formulas (product_name, segment, pdf_url) VALUES (?, ?, ?)`,
+            args: [product_name, segment, pdfUrl]
+        });
+
+        await db.execute({
+            sql: `UPDATE products SET formula_pdf = ? WHERE product_name = ? AND segment = ?`,
+            args: [pdfUrl, product_name, segment]
+        });
+
         res.send(renderMessagePage('Berhasil!', `Dokumen PDF formula untuk produk <b>${product_name}</b> (${segment}) berhasil diunggah dan dihubungkan.`, 'success', '/admin/products/dashboard', 'Kembali ke Kelola Produk'));
     } catch (err) {
         res.status(500).send('Gagal menyimpan PDF: ' + err.message);
     }
 });
 
-app.get('/api/products-by-segment', (req, res) => {
+app.get('/api/products-by-segment', async (req, res) => {
     const { segment } = req.query;
     try {
         let query = `SELECT * FROM products`;
@@ -2836,27 +2812,20 @@ app.get('/api/products-by-segment', (req, res) => {
             query += ` WHERE segment = ?`;
             params.push(segment);
         }
-        const stmt = db.prepare(query);
-        if (params.length > 0) {
-            stmt.bind(params);
-        }
-        
-        let products = [];
-        while (stmt.step()) {
-            let prod = stmt.getAsObject();
-            if (!req.session.user) {
-                prod.formula_pdf = null;
-            }
-            products.push(prod);
-        }
-        stmt.free();
+
+        const result = await db.execute({ sql: query, args: params });
+        const products = result.rows.map(prod => {
+            if (!req.session.user) prod.formula_pdf = null;
+            return prod;
+        });
+
         res.json(products);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.get('/api/filter-options', (req, res) => {
+app.get('/api/filter-options', async (req, res) => {
     const { segment } = req.query;
     try {
         let queryParams = [];
@@ -2866,34 +2835,18 @@ app.get('/api/filter-options', (req, res) => {
             queryParams.push(segment);
         }
 
-        const getValues = (sql, params) => {
-            const stmt = db.prepare(sql);
-            if (params.length > 0) stmt.bind(params);
-            let results = [];
-            while (stmt.step()) {
-                results.push(stmt.getAsObject());
-            }
-            stmt.free();
-            return results;
-        };
+        const principalsRes = await db.execute({ sql: `SELECT DISTINCT principal FROM products ${whereClause}`, args: queryParams });
+        const functionsRes = await db.execute({ sql: `SELECT DISTINCT function FROM products ${whereClause}`, args: queryParams });
+        const applicationsRes = await db.execute({ sql: `SELECT DISTINCT application FROM products ${whereClause}`, args: queryParams });
 
-        const principalsRes = getValues(`SELECT DISTINCT principal FROM products ${whereClause}`, queryParams);
-        const functionsRes = getValues(`SELECT DISTINCT function FROM products ${whereClause}`, queryParams);
-        const applicationsRes = getValues(`SELECT DISTINCT application FROM products ${whereClause}`, queryParams);
-
-        // Helper function dengan parameter allowDash (default true atau diatur true agar '-' lolos)
-        const extractValues = (resultList, colName, allowDash = true) => {
-            return [...new Set(resultList.map(row => row[colName]).filter(val => {
-                if (val === null || val === undefined) return false;
-                if (!allowDash && val === '-') return false;
-                return true;
-            }))].sort();
+        const extractValues = (resultList, colName) => {
+            return [...new Set(resultList.map(row => row[colName]).filter(val => val !== null && val !== undefined))].sort();
         };
 
         res.json({
-            principals: extractValues(principalsRes, 'principal', true), // Izinkan '-' untuk principals
-            functions: extractValues(functionsRes, 'function', true),       // Izinkan '-' jika diperlukan
-            applications: extractValues(applicationsRes, 'application', true) // Izinkan '-' jika diperlukan
+            principals: extractValues(principalsRes.rows, 'principal'),
+            functions: extractValues(functionsRes.rows, 'function'),
+            applications: extractValues(applicationsRes.rows, 'application')
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
